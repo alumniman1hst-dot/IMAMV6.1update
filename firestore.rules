@@ -1,0 +1,145 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function userDocExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && userDocExists() && 
+        (getUserData().role == 'admin' || getUserData().role == 'developer');
+    }
+    
+    function isStaff() {
+      return isSignedIn() && userDocExists() && (
+        getUserData().role == 'admin' || 
+        getUserData().role == 'developer' || 
+        getUserData().role == 'Guru' || 
+        getUserData().role == 'Staf' || 
+        getUserData().role == 'Wali Kelas' ||
+        getUserData().role == 'kepala_madrasah'
+      );
+    }
+
+    // --- Collection Rules ---
+
+    // Data User & Profil
+    match /users/{userId} {
+      // Izinkan baca jika masuk log (untuk pencarian identitas/ID Card)
+      allow read: if isSignedIn();
+      // User bisa buat akunnya sendiri, Admin bisa buatkan akun siapa saja
+      allow create: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // User bisa update dirinya sendiri, Admin bisa update siapa saja
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      // Admin bisa hapus akun user
+      allow delete: if isAdmin();
+    }
+
+    // Data Master (Siswa & Guru)
+    match /students/{nisn} {
+      allow get: if true; 
+      allow list: if isSignedIn();
+      allow write: if isStaff();
+    }
+    match /teachers/{nip} {
+      allow get: if true;
+      allow list: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Akademik (Jurnal, Tugas, Nilai)
+    match /journals/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    match /assignments/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    match /grades/{id} {
+      allow read: if isSignedIn() && (
+        isStaff() || (userDocExists() && getUserData().studentId == resource.data.studentId)
+      );
+      allow write: if isStaff();
+    }
+    match /subjects/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /academic_years/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /classes/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /schedules/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Presensi
+    match /attendance/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+
+    // Layanan Surat & Klaim
+    match /letters/{id} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update: if isStaff();
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid && resource.data.status == 'Pending');
+    }
+    match /claim_requests/{id} {
+      allow read: if isStaff() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn();
+      allow update: if isStaff();
+      allow delete: if isAdmin();
+    }
+
+    // Poin Disiplin
+    match /discipline_logs/{id} {
+      allow read: if isSignedIn();
+      allow write: if isStaff();
+    }
+    match /violations_master/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Logs & Settings
+    match /login_logs/{id} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+    match /audit_logs/{id} {
+      allow read, write: if isAdmin();
+    }
+    match /settings/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /about_content/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Default fallback
+    match /{document=**} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

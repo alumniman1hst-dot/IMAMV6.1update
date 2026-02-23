@@ -1,0 +1,32 @@
+{
+  "name": "imam-management-school",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.ts",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "@google/genai": "^1.30.0",
+    "xlsx": "0.18.5",
+    "lucide-react": "^0.555.0",
+    "date-fns": "^4.1.0",
+    "jspdf": "^3.0.4",
+    "sonner": "^2.0.7",
+    "jspdf-autotable": "^5.0.2",
+    "html5-qrcode": "2.3.8",
+    "firebase": "^10.14.1",
+    "jose": "^6.1.2",
+    "qrcode.react": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}

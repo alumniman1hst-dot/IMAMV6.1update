@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-bottom: env(safe-area-inset-bottom);
+}
+
+@layer base {
+  html, body {
+    @apply h-full w-full overflow-hidden m-0 p-0;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 dark:bg-slate-800 rounded-full;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Spreadsheet Style Table - Konsisten 10.5px & Normal Case */
+  .excel-table {
+    @apply w-full border-collapse border border-slate-200 dark:border-slate-700 text-left text-[10.5px];
+  }
+  .excel-table th {
+    @apply sticky top-0 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-2.5 font-bold text-slate-600 dark:text-slate-400 tracking-tight z-20 shadow-[inset_0_-1px_0_rgba(0,0,0,0.1)] normal-case;
+  }
+  .excel-table td {
+    @apply border border-slate-200 dark:border-slate-700 px-3 py-2 text-slate-700 dark:text-slate-300 bg-white dark:bg-[#0B1121] transition-colors normal-case;
+  }
+  .excel-table tr:nth-child(even) td {
+    @apply bg-slate-50/50 dark:bg-slate-900/30;
+  }
+  .excel-table tr:hover td {
+    @apply bg-indigo-50 dark:bg-indigo-900/20;
+  }
+}
+
+/* Animations */
+@keyframes checkmark {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.animate-checkmark {
+  animation: checkmark 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes scanY {
+  0% { top: 0%; }
+  50% { top: 100%; }
+  100% { top: 0%; }
+}
+
+.animate-scan-y {
+  animation: scanY 2s linear infinite;
+}
+
+.news-card {
+  @apply bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700;
+}
+
+.news-card-badge {
+  @apply bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400;
+}
+
+.news-card-title {
+  @apply text-slate-800 dark:text-white;
+}
+
+.news-card-action {
+  @apply bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400;
+}

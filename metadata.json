@@ -1,0 +1,7 @@
+{
+  "name": "IMAM V6.123456",
+  "description": "Integrated Madrasah Academic Manager - MAN 1 Hulu Sungai Tengah",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
