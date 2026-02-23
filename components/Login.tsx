@@ -12,11 +12,35 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, onNavigateRegister }) => {
-  const [email, setEmail] = useState('dgt.3652@gmail.com');
+  const [identifier, setIdentifier] = useState('dgt.3652@gmail.com');
   const [password, setPassword] = useState('123456');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [networkError, setNetworkError] = useState(false);
+
+  const resolveLoginEmail = async (loginInput: string): Promise<string> => {
+    if (!db) throw new Error('Layanan database tidak tersedia.');
+
+    if (loginInput.includes('@')) return loginInput.toLowerCase();
+
+    const lookups = [
+      db.collection('users').where('nisn', '==', loginInput).limit(1).get(),
+      db.collection('users').where('nip', '==', loginInput).limit(1).get(),
+      db.collection('users').where('userlogin', '==', loginInput).limit(1).get()
+    ];
+
+    for (const query of lookups) {
+      const snap = await query;
+      if (!snap.empty) {
+        const data = snap.docs[0].data();
+        const foundEmail = (data?.email || '').toString().trim().toLowerCase();
+        if (foundEmail) return foundEmail;
+        throw new Error('Akun ditemukan, namun email login belum disetel oleh admin.');
+      }
+    }
+
+    throw new Error('NISN/NIP tidak ditemukan. Hubungi admin sekolah.');
+  };
 
   const handleLogin = async (e: React.FormEvent, forceMock: boolean = false) => {
     if (e) e.preventDefault();
@@ -24,7 +48,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateRegister }) => {
     setError('');
     setNetworkError(false);
 
-    const u = email.trim();
+    const u = identifier.trim();
     const p = password.trim();
 
     if (isMockMode || forceMock) {
@@ -56,18 +80,33 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateRegister }) => {
            throw new Error("Layanan Firebase tidak dapat dihubungi.");
         }
         
-        const userCredential = await auth.signInWithEmailAndPassword(u, p);
+        const emailToSignIn = await resolveLoginEmail(u);
+        const userCredential = await auth.signInWithEmailAndPassword(emailToSignIn, p);
         const user = userCredential.user;
 
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
-            if (userDoc.exists) {
-                const role = normalizeRole(userDoc.data()?.role, UserRole.TAMU);
-                onLogin(role);
-                toast.success(`Selamat datang, ${user.displayName || 'Pengguna'}`);
-            } else {
-                onLogin(UserRole.TAMU);
+            if (!userDoc.exists) {
+                await auth.signOut();
+                throw new Error('Akun belum terdaftar di sistem sekolah.');
             }
+
+            const data = userDoc.data();
+            const role = normalizeRole(data?.role, UserRole.TAMU);
+            const schoolId = data?.schoolId || data?.school_id;
+
+            if (!data?.role || role === UserRole.TAMU) {
+                await auth.signOut();
+                throw new Error('Akun belum diaktifkan oleh sekolah (role belum disetel).');
+            }
+
+            if (!schoolId && role !== UserRole.DEVELOPER) {
+                await auth.signOut();
+                throw new Error('Akun belum memiliki school_id. Hubungi admin sekolah.');
+            }
+
+            onLogin(role);
+            toast.success(`Selamat datang, ${user.displayName || data?.nama || 'Pengguna'}`);
         }
     } catch (err: any) {
         setLoading(false);
@@ -75,7 +114,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateRegister }) => {
             setNetworkError(true);
             setError('Gagal menghubungi server. Periksa internet Anda.');
         } else {
-            setError('Email atau Password salah.');
+            setError(err.message || 'NISN/NIP/Email atau Password salah.');
         }
     }
   };
@@ -102,15 +141,15 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateRegister }) => {
             <form onSubmit={(e) => handleLogin(e)} className="space-y-5">
                 <div className="space-y-4">
                     <div className="group">
-                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Email / Akun</label>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">NISN / NIP / Email</label>
                         <div className="relative">
                             <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors">
                                 <EnvelopeIcon className="w-5 h-5" />
                             </div>
                             <input 
-                                type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                                type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)}
                                 className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-slate-900 dark:text-white text-sm font-bold shadow-sm"
-                                placeholder="Email Anda" required
+                                placeholder="NISN / NIP / Email" required
                             />
                         </div>
                     </div>

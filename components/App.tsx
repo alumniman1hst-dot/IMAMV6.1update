@@ -4,25 +4,24 @@
  * IMAM System - Integrated Madrasah Academic Manager
  */
 
-import React, { useState, useEffect } from 'react';
-import Login from './Login';
-import Register from './Register';
-import Dashboard from './Dashboard';
-import Presensi from './Presensi';
-import ContentGeneration from './ContentGeneration';
-import ClassList from './ClassList';
-import ClassPromotion from './ClassPromotion';
-import Schedule from './Schedule';
+import React, { Suspense, useState, useEffect } from 'react';
+const Login = React.lazy(() => import('./Login'));
+const Register = React.lazy(() => import('./Register'));
+const Dashboard = React.lazy(() => import('./Dashboard'));
+const Presensi = React.lazy(() => import('./Presensi'));
+const ContentGeneration = React.lazy(() => import('./ContentGeneration'));
+const ClassList = React.lazy(() => import('./ClassList'));
+const ClassPromotion = React.lazy(() => import('./ClassPromotion'));
+const Schedule = React.lazy(() => import('./Schedule'));
 import BottomNav from './BottomNav';
-import GenericView from './GenericView';
 import Sidebar from './Sidebar';
-import Profile from './Profile';
-import AcademicYear from './AcademicYear';
-import Reports from './Reports';
+const Profile = React.lazy(() => import('./Profile'));
+const AcademicYear = React.lazy(() => import('./AcademicYear'));
+const Reports = React.lazy(() => import('./Reports'));
 import ProtectedRoute from './ProtectedRoute';
-import Advisor from './Advisor';
-import Settings from './Settings';
-import PointsView from './PointsView';
+const Advisor = React.lazy(() => import('./Advisor'));
+const Settings = React.lazy(() => import('./Settings'));
+const PointsView = React.lazy(() => import('./PointsView'));
 import { ViewState, UserRole } from '../types';
 import { normalizeRole } from '../src/auth/roles';
 import { toast } from 'sonner';
@@ -30,28 +29,90 @@ import { Loader2, AppLogo } from './Icons';
 import { auth, db, isMockMode } from '../services/firebase';
 
 // Feature Views
-import AllFeatures from './AllFeatures';
-import AttendanceHistory from './AttendanceHistory';
-import QRScanner from './QRScanner';
-import TeachingJournal from './TeachingJournal';
-import Assignments from './Assignments';
-import Grades from './Grades';
-import StudentData from './StudentData';
-import TeacherData from './TeacherData';
-import IDCard from './IDCard';
-import Letters from './Letters';
-import CreateAccount from './CreateAccount';
-import DeveloperConsole from './DeveloperConsole';
-import LoginHistory from './LoginHistory';
-import About from './About';
-import History from './History';
-import Premium from './Premium';
-import News from './News';
-import MadrasahInfo from './MadrasahInfo';
-import KemenagHub from './KemenagHub';
-import ClaimManagement from './ClaimManagement';
+const AllFeatures = React.lazy(() => import('./AllFeatures'));
+const AttendanceHistory = React.lazy(() => import('./AttendanceHistory'));
+const QRScanner = React.lazy(() => import('./QRScanner'));
+const TeachingJournal = React.lazy(() => import('./TeachingJournal'));
+const Assignments = React.lazy(() => import('./Assignments'));
+const Grades = React.lazy(() => import('./Grades'));
+const StudentData = React.lazy(() => import('./StudentData'));
+const TeacherData = React.lazy(() => import('./TeacherData'));
+const IDCard = React.lazy(() => import('./IDCard'));
+const Letters = React.lazy(() => import('./Letters'));
+const CreateAccount = React.lazy(() => import('./CreateAccount'));
+const DeveloperConsole = React.lazy(() => import('./DeveloperConsole'));
+const LoginHistory = React.lazy(() => import('./LoginHistory'));
+const About = React.lazy(() => import('./About'));
+const History = React.lazy(() => import('./History'));
+const Premium = React.lazy(() => import('./Premium'));
+const News = React.lazy(() => import('./News'));
+const MadrasahInfo = React.lazy(() => import('./MadrasahInfo'));
+const KemenagHub = React.lazy(() => import('./KemenagHub'));
+const ClaimManagement = React.lazy(() => import('./ClaimManagement'));
+
+const viewToPath: Partial<Record<ViewState, string>> = {
+  [ViewState.LOGIN]: '/login',
+  [ViewState.REGISTER]: '/register',
+  [ViewState.DASHBOARD]: '/dashboard',
+  [ViewState.PROFILE]: '/profile',
+  [ViewState.SCHEDULE]: '/schedule',
+  [ViewState.ALL_FEATURES]: '/features',
+  [ViewState.NEWS]: '/news',
+  [ViewState.ABOUT]: '/about',
+  [ViewState.LOGIN_HISTORY]: '/login-history',
+  [ViewState.ID_CARD]: '/id-card',
+  [ViewState.HISTORY]: '/history',
+  [ViewState.PREMIUM]: '/premium',
+  [ViewState.ADVISOR]: '/advisor',
+  [ViewState.MADRASAH_INFO]: '/madrasah-info',
+  [ViewState.KEMENAG_HUB]: '/kemenag-hub',
+  [ViewState.SETTINGS]: '/settings',
+  [ViewState.CLASSES]: '/classes',
+  [ViewState.PROMOTION]: '/promotion',
+  [ViewState.ACADEMIC_YEAR]: '/academic-year',
+  [ViewState.SCANNER]: '/scanner',
+  [ViewState.ATTENDANCE_HISTORY]: '/attendance-history',
+  [ViewState.PRESENSI]: '/presensi',
+  [ViewState.CONTENT_GENERATION]: '/content-generation',
+  [ViewState.REPORTS]: '/reports',
+  [ViewState.JOURNAL]: '/journal',
+  [ViewState.ASSIGNMENTS]: '/assignments',
+  [ViewState.GRADES]: '/grades',
+  [ViewState.REPORT_CARDS]: '/report-cards',
+  [ViewState.STUDENTS]: '/students',
+  [ViewState.TEACHERS]: '/teachers',
+  [ViewState.LETTERS]: '/letters',
+  [ViewState.POINTS]: '/points',
+  [ViewState.CLAIM_MANAGEMENT]: '/claim-management',
+  [ViewState.CREATE_ACCOUNT]: '/create-account',
+  [ViewState.DEVELOPER]: '/developer'
+};
+
+const pathToView = Object.entries(viewToPath).reduce((acc, [view, path]) => {
+  if (path) acc[path] = view as ViewState;
+  return acc;
+}, {} as Record<string, ViewState>);
+
+const normalizePath = (pathname: string): string => {
+  if (!pathname) return '/login';
+  if (pathname === '/') return '/login';
+  return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+};
+
+const getViewFromPath = (pathname: string): ViewState => {
+  const normalized = normalizePath(pathname);
+  return pathToView[normalized] || ViewState.LOGIN;
+};
+
+const getPathFromView = (view: ViewState): string => viewToPath[view] || '/login';
 
 const App: React.FC = () => {
+  const viewFallback = (
+    <div className="h-full w-full flex items-center justify-center bg-white dark:bg-[#020617]">
+      <Loader2 className="w-7 h-7 text-indigo-500 animate-spin opacity-70" />
+    </div>
+  );
+
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.LOGIN);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>(UserRole.TAMU);
@@ -86,14 +147,41 @@ const App: React.FC = () => {
                       if (userDoc.exists) {
                           const data = userDoc.data();
                           const role = normalizeRole(data?.role, UserRole.TAMU);
+                          const schoolId = data?.schoolId || data?.school_id;
+
+                          if (!data?.role || role === UserRole.TAMU) {
+                            toast.error('Akun belum diaktifkan (role belum disetel).');
+                            await auth.signOut();
+                            return;
+                          }
+
+                          if (!schoolId && role !== UserRole.DEVELOPER) {
+                            toast.error('Akun belum memiliki school_id.');
+                            await auth.signOut();
+                            return;
+                          }
+
                           setUserRole(role);
-                          setCurrentView(prev => (prev === ViewState.LOGIN || prev === ViewState.REGISTER) ? ViewState.DASHBOARD : prev);
+                          const activeView = getViewFromPath(window.location.pathname);
+                          if (activeView === ViewState.LOGIN || activeView === ViewState.REGISTER) {
+                            setCurrentView(ViewState.DASHBOARD);
+                            window.history.replaceState({}, '', getPathFromView(ViewState.DASHBOARD));
+                          } else {
+                            setCurrentView(activeView);
+                          }
                       } else {
-                          setUserRole(UserRole.TAMU);
-                          setCurrentView(prev => (prev === ViewState.LOGIN || prev === ViewState.REGISTER) ? ViewState.DASHBOARD : prev);
+                          toast.error('Data akun sekolah tidak ditemukan.');
+                          await auth.signOut();
+                          return;
                       }
                   } catch (e: any) { 
                       console.warn("Auth sync failure:", e.message);
+                  }
+              } else {
+                  const activeView = getViewFromPath(window.location.pathname);
+                  if (activeView !== ViewState.LOGIN && activeView !== ViewState.REGISTER) {
+                    setCurrentView(ViewState.LOGIN);
+                    window.history.replaceState({}, '', getPathFromView(ViewState.LOGIN));
                   }
               }
               setAuthLoading(false);
@@ -109,9 +197,26 @@ const App: React.FC = () => {
       };
   }, []);
 
+  useEffect(() => {
+    const syncFromLocation = () => {
+      const nextView = getViewFromPath(window.location.pathname);
+      setCurrentView(nextView);
+    };
+
+    syncFromLocation();
+    window.addEventListener('popstate', syncFromLocation);
+    return () => window.removeEventListener('popstate', syncFromLocation);
+  }, []);
+
   const handleNavigate = (view: ViewState) => {
+    const nextPath = getPathFromView(view);
     setViewKey(prev => prev + 1);
     setCurrentView(view);
+
+    if (normalizePath(window.location.pathname) !== nextPath) {
+      window.history.pushState({}, '', nextPath);
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
   };
 
   const toggleTheme = () => {
@@ -155,8 +260,8 @@ const App: React.FC = () => {
 
   const isAuthView = currentView === ViewState.LOGIN || currentView === ViewState.REGISTER;
 
-  const renderView = () => {
-    switch (currentView) {
+  const renderView = (view: ViewState) => {
+    switch (view) {
       case ViewState.LOGIN: return <Login onLogin={handleLoginSuccess} onNavigateRegister={() => handleNavigate(ViewState.REGISTER)} />;
       case ViewState.REGISTER: return <Register onLogin={handleLoginSuccess} onLoginClick={() => handleNavigate(ViewState.LOGIN)} />;
       case ViewState.DASHBOARD: return <Dashboard onNavigate={handleNavigate} isDarkMode={isDarkTheme} onToggleTheme={toggleTheme} userRole={userRole} onLogout={handleLogout} />;
@@ -173,6 +278,8 @@ const App: React.FC = () => {
       case ViewState.MADRASAH_INFO: return <MadrasahInfo onBack={backToDashboard} />;
       case ViewState.KEMENAG_HUB: return <KemenagHub onBack={backToDashboard} />;
       case ViewState.SETTINGS: return <Settings onBack={backToDashboard} onNavigate={handleNavigate} onLogout={handleLogout} isDarkMode={isDarkTheme} onToggleTheme={toggleTheme} userRole={userRole} />;
+      case ViewState.PROMOTION: return <ClassPromotion onBack={backToDashboard} />;
+      case ViewState.ACADEMIC_YEAR: return <AcademicYear onBack={backToDashboard} />;
       
       // PROTECTED ROUTES
       case ViewState.CLASSES: return <ProtectedRoute allowedRoles={staffAbove} userRole={userRole} onBack={backToDashboard}><ClassList onBack={backToDashboard} userRole={userRole} /></ProtectedRoute>;
@@ -213,7 +320,9 @@ const App: React.FC = () => {
             
             <div className="flex-1 flex flex-col h-full w-full relative overflow-hidden">
                 <div key={viewKey} className={`flex-1 overflow-hidden relative animate-in fade-in slide-in-from-bottom-2 duration-300 ${!isOnline ? 'mt-4' : ''}`}>
-                    {renderView()}
+                    <Suspense fallback={viewFallback}>
+                      {renderView(currentView)}
+                    </Suspense>
                 </div>
                 
                 {!isAuthView && (
