@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#0F172A" />
+    <title>IMAM - School Management System</title>
+    
+    <link rel="manifest" href="/assets/manifest-puM-BpKq.json" />
+    <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+PHBhdGggZD0iTTEyIDJMMyA1VjExQzMgMTYuNTUgNy40IDIxLjc0IDEyIDIzQzE2LjYgMjEuNzQgMjEgMTYuNTUgMjEgMTFWNUwxMiAyWiIgZmlsbD0iIzQzMzhDQSIvPjxwYXRoIGQ9Ik05IDEwQzkgMTAgMTAuNSAxMCAxMiAxMS41QzEzUgMTUgMTUgMTAgMTUgMTBWMTdDMTUgMTcgMTMuNSAxNyAxMiAxOC41QzEwLjUgMTcgOSAxNyA5IDE3VjEwWiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz48cGF0aCBkPSJNMTIgMTEuNVYxOC41IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxwYXRoIGQ9Ik0xMiA2VjgiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PC9zdmc+">
+    <link rel="apple-touch-icon" href="https://ui-avatars.com/api/?name=IMAM&background=0F172A&color=fff&size=180&rounded=true&length=4&font-size=0.33">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      window.process = window.process || { env: { NEXT_PUBLIC_MOCK_AUTH: 'false' } };
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+            fontSize: { 'xxs': '0.65rem' },
+            animation: {
+              'fade-in-up': 'fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'blob': 'blob 10s infinite',
+              'checkmark': 'checkmark 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+              'scan-y': 'scanY 2s linear infinite'
+            },
+            keyframes: {
+              fadeInUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+              blob: { '0%': { transform: 'translate(0px, 0px) scale(1)' }, '33%': { transform: 'translate(30px, -50px) scale(1.1)' }, '66%': { transform: 'translate(-20px, 20px) scale(0.9)' }, '100%': { transform: 'translate(0px, 0px) scale(1)' } },
+              checkmark: { '0%': { transform: 'scale(0)' }, '50%': { transform: 'scale(1.2)' }, '100%': { transform: 'scale(1)' } },
+              scanY: { '0%': { top: '0%' }, '50%': { top: '100%' }, '100%': { top: '0%' } }
+            }
+          }
+        }
+      };
+    </script>
+    <style>
+      :root {
+        --news-card-bg: #ffffff;
+        --news-card-primary: #4f46e5;
+        --news-card-secondary: #e0e7ff;
+        --news-card-border: #f1f5f9;
+        --safe-area-top: env(safe-area-inset-top);
+        --safe-area-bottom: env(safe-area-inset-bottom);
+      }
+      .dark { --news-card-bg: #1e293b; --news-card-primary: #818cf8; --news-card-secondary: #312e81; --news-card-border: #334155; }
+      html, body { height: 100%; width: 100%; overflow: hidden; margin: 0; padding: 0; overscroll-behavior: none; background-color: #f8fafc; color: #0f172a; transition: background-color 0.5s ease, color 0.5s ease; }
+      .dark body { background-color: #020617; color: #f8fafc; }
+      * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+      .safe-pt { padding-top: var(--safe-area-top); }
+      .safe-pb { padding-bottom: var(--safe-area-bottom); }
+      ::-webkit-scrollbar { width: 4px; }
+      ::-webkit-scrollbar-thumb { background-color: rgba(148, 163, 184, 0.3); border-radius: 20px; }
+      .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+
+  <script type="importmap">
+{
+  "imports": {
+    "@/": "/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "firebase/app": "https://esm.sh/firebase@10.14.1/compat/app",
+    "firebase/auth": "https://esm.sh/firebase@10.14.1/compat/auth?deps=firebase@10.14.1/compat/app",
+    "firebase/firestore": "https://esm.sh/firebase@10.14.1/compat/firestore?deps=firebase@10.14.1/compat/app",
+    "firebase/analytics": "https://esm.sh/firebase@10.14.1/compat/analytics?deps=firebase@10.14.1/compat/app",
+    "xlsx": "https://esm.sh/xlsx@0.18.5",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "date-fns": "https://aistudiocdn.com/date-fns@^4.1.0",
+    "jspdf": "https://aistudiocdn.com/jspdf@^3.0.4",
+    "sonner": "https://aistudiocdn.com/sonner@^2.0.7",
+    "jspdf-autotable": "https://aistudiocdn.com/jspdf-autotable@^5.0.2",
+    "html5-qrcode": "https://esm.sh/html5-qrcode@2.3.8",
+    "qrcode.react": "https://aistudiocdn.com/qrcode.react@^4.2.0",
+    "jose": "https://esm.sh/jose@^6.1.3",
+    "date-fns/": "https://esm.sh/date-fns@^4.1.0/",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "next/": "https://esm.sh/next@^16.1.4/",
+    "firebase/": "https://esm.sh/firebase@^12.8.0/",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "path": "https://esm.sh/path@^0.12.7",
+    "firebase-admin": "https://esm.sh/firebase-admin@^13.6.0"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-CcQVG4nr.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BlFLobmr.css">
+</head>
+  <body>
+    <div id="root" style="height: 100%; width: 100%;"></div>
+</body>
+</html>

@@ -96,6 +96,8 @@ const pathToView = Object.entries(viewToPath).reduce((acc, [view, path]) => {
 const normalizePath = (pathname: string): string => {
   if (!pathname) return '/login';
   if (pathname === '/') return '/login';
+  if (!pathname) return '/dashboard';
+  if (pathname === '/') return '/dashboard';
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
 };
 
@@ -105,6 +107,10 @@ const getViewFromPath = (pathname: string): ViewState => {
 };
 
 const getPathFromView = (view: ViewState): string => viewToPath[view] || '/login';
+  return pathToView[normalized] || ViewState.DASHBOARD;
+};
+
+const getPathFromView = (view: ViewState): string => viewToPath[view] || '/dashboard';
 
 const App: React.FC = () => {
   const viewFallback = (
@@ -173,6 +179,14 @@ const App: React.FC = () => {
                           toast.error('Data akun sekolah tidak ditemukan.');
                           await auth.signOut();
                           return;
+                          setUserRole(UserRole.TAMU);
+                          const activeView = getViewFromPath(window.location.pathname);
+                          if (activeView === ViewState.LOGIN || activeView === ViewState.REGISTER) {
+                            setCurrentView(ViewState.DASHBOARD);
+                            window.history.replaceState({}, '', getPathFromView(ViewState.DASHBOARD));
+                          } else {
+                            setCurrentView(activeView);
+                          }
                       }
                   } catch (e: any) { 
                       console.warn("Auth sync failure:", e.message);
