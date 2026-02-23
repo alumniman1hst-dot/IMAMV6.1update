@@ -111,6 +111,8 @@ export interface ClassData {
 
 export interface Student {
   id?: string;
+  school_id: string;
+  roles: string[];
   idUnik?: string;
   userlogin?: string;
   namaLengkap: string;
@@ -183,6 +185,8 @@ export interface ChatMessage {
 
 export interface Teacher {
   id?: string;
+  school_id: string;
+  roles: string[];
   name: string;
   nip: string;
   subject: string;

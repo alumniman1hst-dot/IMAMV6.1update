@@ -94,6 +94,8 @@ const pathToView = Object.entries(viewToPath).reduce((acc, [view, path]) => {
 }, {} as Record<string, ViewState>);
 
 const normalizePath = (pathname: string): string => {
+  if (!pathname) return '/login';
+  if (pathname === '/') return '/login';
   if (!pathname) return '/dashboard';
   if (pathname === '/') return '/dashboard';
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
@@ -101,6 +103,10 @@ const normalizePath = (pathname: string): string => {
 
 const getViewFromPath = (pathname: string): ViewState => {
   const normalized = normalizePath(pathname);
+  return pathToView[normalized] || ViewState.LOGIN;
+};
+
+const getPathFromView = (view: ViewState): string => viewToPath[view] || '/login';
   return pathToView[normalized] || ViewState.DASHBOARD;
 };
 
@@ -147,6 +153,20 @@ const App: React.FC = () => {
                       if (userDoc.exists) {
                           const data = userDoc.data();
                           const role = normalizeRole(data?.role, UserRole.TAMU);
+                          const schoolId = data?.schoolId || data?.school_id;
+
+                          if (!data?.role || role === UserRole.TAMU) {
+                            toast.error('Akun belum diaktifkan (role belum disetel).');
+                            await auth.signOut();
+                            return;
+                          }
+
+                          if (!schoolId && role !== UserRole.DEVELOPER) {
+                            toast.error('Akun belum memiliki school_id.');
+                            await auth.signOut();
+                            return;
+                          }
+
                           setUserRole(role);
                           const activeView = getViewFromPath(window.location.pathname);
                           if (activeView === ViewState.LOGIN || activeView === ViewState.REGISTER) {
@@ -156,6 +176,9 @@ const App: React.FC = () => {
                             setCurrentView(activeView);
                           }
                       } else {
+                          toast.error('Data akun sekolah tidak ditemukan.');
+                          await auth.signOut();
+                          return;
                           setUserRole(UserRole.TAMU);
                           const activeView = getViewFromPath(window.location.pathname);
                           if (activeView === ViewState.LOGIN || activeView === ViewState.REGISTER) {
@@ -167,6 +190,12 @@ const App: React.FC = () => {
                       }
                   } catch (e: any) { 
                       console.warn("Auth sync failure:", e.message);
+                  }
+              } else {
+                  const activeView = getViewFromPath(window.location.pathname);
+                  if (activeView !== ViewState.LOGIN && activeView !== ViewState.REGISTER) {
+                    setCurrentView(ViewState.LOGIN);
+                    window.history.replaceState({}, '', getPathFromView(ViewState.LOGIN));
                   }
               }
               setAuthLoading(false);
