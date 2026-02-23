@@ -5,49 +5,47 @@
  * Core Application Engine
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { Toaster, toast } from 'sonner';
 import { ViewState, UserRole } from './types';
 import { normalizeRole } from './src/auth/roles';
 import { auth, db, isMockMode } from './services/firebase';
 import { Loader2, AppLogo } from './components/Icons';
 
-// View Components
-import Login from './components/Login';
-// Added Register import to support routing logic
-import Register from './components/Register';
-import Dashboard from './components/Dashboard';
-import Presensi from './components/Presensi';
-import ContentGeneration from './components/ContentGeneration';
-import ClassList from './components/ClassList';
-import Schedule from './components/Schedule';
-import Profile from './components/Profile';
-import AcademicYear from './components/AcademicYear';
-import Reports from './components/Reports';
+// View Components (lazy-loaded for faster initial startup)
+const Login = React.lazy(() => import('./components/Login'));
+const Register = React.lazy(() => import('./components/Register'));
+const Dashboard = React.lazy(() => import('./components/Dashboard'));
+const Presensi = React.lazy(() => import('./components/Presensi'));
+const ContentGeneration = React.lazy(() => import('./components/ContentGeneration'));
+const ClassList = React.lazy(() => import('./components/ClassList'));
+const Schedule = React.lazy(() => import('./components/Schedule'));
+const Profile = React.lazy(() => import('./components/Profile'));
+const Reports = React.lazy(() => import('./components/Reports'));
 import ProtectedRoute from './components/ProtectedRoute';
-import Advisor from './components/Advisor';
-import Settings from './components/Settings';
-import PointsView from './components/PointsView';
-import AllFeatures from './components/AllFeatures';
-import AttendanceHistory from './components/AttendanceHistory';
-import QRScanner from './components/QRScanner';
-import TeachingJournal from './components/TeachingJournal';
-import Assignments from './components/Assignments';
-import Grades from './components/Grades';
-import StudentData from './components/StudentData';
-import TeacherData from './components/TeacherData';
-import IDCard from './components/IDCard';
-import Letters from './components/Letters';
-import CreateAccount from './components/CreateAccount';
-import DeveloperConsole from './components/DeveloperConsole';
-import LoginHistory from './components/LoginHistory';
-import About from './components/About';
-import History from './components/History';
-import Premium from './components/Premium';
-import News from './components/News';
-import MadrasahInfo from './components/MadrasahInfo';
-import KemenagHub from './components/KemenagHub';
-import Onboarding from './components/Onboarding';
+const Advisor = React.lazy(() => import('./components/Advisor'));
+const Settings = React.lazy(() => import('./components/Settings'));
+const PointsView = React.lazy(() => import('./components/PointsView'));
+const AllFeatures = React.lazy(() => import('./components/AllFeatures'));
+const AttendanceHistory = React.lazy(() => import('./components/AttendanceHistory'));
+const QRScanner = React.lazy(() => import('./components/QRScanner'));
+const TeachingJournal = React.lazy(() => import('./components/TeachingJournal'));
+const Assignments = React.lazy(() => import('./components/Assignments'));
+const Grades = React.lazy(() => import('./components/Grades'));
+const StudentData = React.lazy(() => import('./components/StudentData'));
+const TeacherData = React.lazy(() => import('./components/TeacherData'));
+const IDCard = React.lazy(() => import('./components/IDCard'));
+const Letters = React.lazy(() => import('./components/Letters'));
+const CreateAccount = React.lazy(() => import('./components/CreateAccount'));
+const DeveloperConsole = React.lazy(() => import('./components/DeveloperConsole'));
+const LoginHistory = React.lazy(() => import('./components/LoginHistory'));
+const About = React.lazy(() => import('./components/About'));
+const History = React.lazy(() => import('./components/History'));
+const Premium = React.lazy(() => import('./components/Premium'));
+const News = React.lazy(() => import('./components/News'));
+const MadrasahInfo = React.lazy(() => import('./components/MadrasahInfo'));
+const KemenagHub = React.lazy(() => import('./components/KemenagHub'));
+const Onboarding = React.lazy(() => import('./components/Onboarding'));
 
 // Layout & Shell
 import MobileContainer from './components/MobileContainer';
@@ -55,6 +53,12 @@ import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 
 const App: React.FC = () => {
+  const viewFallback = (
+    <div className="h-full w-full flex items-center justify-center bg-white dark:bg-[#020617]">
+      <Loader2 className="w-7 h-7 text-indigo-500 animate-spin opacity-70" />
+    </div>
+  );
+
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.LOGIN);
   const [userRole, setUserRole] = useState<UserRole>(UserRole.GURU);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -224,7 +228,9 @@ const App: React.FC = () => {
             key={viewKey} 
             className="flex-1 overflow-hidden relative animate-in fade-in slide-in-from-bottom-2 duration-300"
           >
-            {renderCurrentView()}
+            <Suspense fallback={viewFallback}>
+              {renderCurrentView()}
+            </Suspense>
           </div>
           
           {/* Navigation (Mobile Docks) */}
