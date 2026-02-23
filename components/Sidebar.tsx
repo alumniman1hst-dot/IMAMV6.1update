@@ -20,6 +20,7 @@ interface SidebarProps {
   userRole?: UserRole;
   onLogout?: () => void;
   onClose?: () => void;
+  canAccessView?: (view: ViewState) => boolean;
 }
 
 interface SidebarItem {
@@ -30,7 +31,7 @@ interface SidebarItem {
     roles?: UserRole[]; 
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, userRole = UserRole.GURU, onLogout, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, userRole = UserRole.GURU, onLogout, onClose, canAccessView }) => {
   
   const menuItems: SidebarItem[] = [
     { label: 'Beranda', icon: HomeIcon, view: ViewState.DASHBOARD },
@@ -75,10 +76,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, userRole = U
 
   const filteredItems = useMemo(() => {
     return menuItems.filter(item => {
+        if (item.view && canAccessView && !canAccessView(item.view)) return false;
         if (!item.roles) return true;
         return item.roles.includes(userRole as UserRole);
     });
-  }, [userRole]);
+  }, [canAccessView, userRole]);
 
   return (
     <div className="h-full w-full bg-white dark:bg-[#0B1121] flex flex-col relative overflow-hidden">
