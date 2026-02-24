@@ -93,10 +93,7 @@ const pathToView = Object.entries(viewToPath).reduce((acc, [view, path]) => {
 }, {} as Record<string, ViewState>);
 
 const normalizePath = (pathname: string): string => {
-  if (!pathname) return '/login';
-  if (pathname === '/') return '/login';
-  if (!pathname) return '/dashboard';
-  if (pathname === '/') return '/dashboard';
+  if (!pathname || pathname === '/') return '/login';
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
 };
 
