@@ -100,6 +100,45 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       onLogin(role);
       toast.success(`Selamat datang, ${cred.user.displayName || data?.nama || 'Pengguna'}`);
+        if (!auth || !db) {
+           setNetworkError(true);
+           throw new Error("Layanan Firebase tidak dapat dihubungi.");
+        }
+        
+        const emailToSignIn = await resolveLoginEmail(u);
+        const userCredential = await auth.signInWithEmailAndPassword(emailToSignIn, p);
+        const user = userCredential.user;
+
+        if (user) {
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            if (!userDoc.exists) {
+                await auth.signOut();
+                throw new Error('Akun belum terdaftar di sistem sekolah.');
+            }
+
+            const data = userDoc.data();
+            const role = normalizeRole(data?.role, UserRole.TAMU);
+            const schoolId = data?.schoolId || data?.school_id;
+            const status = String(data?.status || '').toLowerCase();
+
+            if (status !== 'active') {
+                await auth.signOut();
+                throw new Error('Akun belum aktif. Selesaikan proses claim/aktivasi terlebih dahulu.');
+            }
+
+            if (!data?.role || role === UserRole.TAMU) {
+                await auth.signOut();
+                throw new Error('Akun belum diaktifkan oleh sekolah (role belum disetel).');
+            }
+
+            if (!schoolId && role !== UserRole.DEVELOPER) {
+                await auth.signOut();
+                throw new Error('Akun belum memiliki school_id. Hubungi admin sekolah.');
+            }
+
+            onLogin(role);
+            toast.success(`Selamat datang, ${user.displayName || data?.nama || 'Pengguna'}`);
+        }
     } catch (err: any) {
       setError(err.message || 'Identitas atau password salah.');
     } finally {

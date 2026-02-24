@@ -353,6 +353,8 @@ const App: React.FC = () => {
     switch (view) {
       case ViewState.LOGIN: return <Login onLogin={handleLoginSuccess} />;
       case ViewState.REGISTER: return <Login onLogin={handleLoginSuccess} />;
+      case ViewState.LOGIN: return <Login onLogin={handleLoginSuccess} onNavigateRegister={() => handleNavigate(ViewState.REGISTER)} />;
+      case ViewState.REGISTER: return <Register onLogin={handleLoginSuccess} onLoginClick={() => handleNavigate(ViewState.LOGIN)} />;
       case ViewState.DASHBOARD: return <Dashboard onNavigate={handleNavigate} isDarkMode={isDarkTheme} onToggleTheme={toggleTheme} userRole={userRole} onLogout={handleLogout} canAccessView={(view) => canAccessView(view, currentUser)} />;
       case ViewState.PROFILE: return <Profile onBack={backToDashboard} onLogout={handleLogout} />;
       case ViewState.SCHEDULE: return <Schedule onBack={backToDashboard} />;
