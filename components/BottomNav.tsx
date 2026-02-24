@@ -9,9 +9,10 @@ interface BottomNavProps {
   currentView: ViewState;
   onNavigate: (view: ViewState) => void;
   userRole?: UserRole;
+  canAccessView?: (view: ViewState) => boolean;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate, userRole }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate, userRole, canAccessView }) => {
   const isStudent = userRole === UserRole.SISWA;
 
   const navItems = [
@@ -47,6 +48,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate, userRole
     }
   ];
 
+  const filteredNavItems = navItems.filter((item) => !canAccessView || canAccessView(item.view));
+
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none pb-[env(safe-area-inset-bottom)] md:hidden">
         {/* Kontainer utama */}
@@ -56,6 +59,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate, userRole
             <div className="absolute bottom-24 right-6 z-50 flex flex-col items-center gap-4">
                 
                 {/* 1. FLOATING LIVE CHAT BUTTON (Helpdesk) */}
+                {(!canAccessView || canAccessView(ViewState.ADVISOR)) && (
                 <div className="flex flex-col items-center gap-1 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
                     <div className="px-2 py-0.5 bg-violet-600 dark:bg-violet-500 rounded-full shadow-lg border border-white/20">
                         <span className="text-[6px] font-black text-white uppercase tracking-[0.2em]">Live Chat</span>
@@ -68,9 +72,10 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate, userRole
                         <HeadsetIcon className="w-5 h-5 relative z-10 drop-shadow-md animate-pulse" />
                     </button>
                 </div>
+                )}
 
                 {/* 2. FLOATING SCAN BUTTON (Hanya untuk non-Siswa) */}
-                {!isStudent && (
+                {!isStudent && (!canAccessView || canAccessView(ViewState.SCANNER)) && (
                     <div className="flex flex-col items-center gap-1 animate-in fade-in slide-in-from-bottom-4 duration-700">
                         <div className="px-2.5 py-0.5 bg-indigo-600 dark:bg-indigo-500 rounded-full shadow-lg shadow-indigo-500/30 border border-white/20 animate-bounce">
                             <span className="text-[7px] font-black text-white uppercase tracking-[0.2em]">Scan QR</span>
@@ -90,7 +95,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate, userRole
             {/* --- DOCK NAV CONTAINER --- */}
             <nav className="bg-white/95 dark:bg-[#0F172A]/95 backdrop-blur-2xl border border-white/40 dark:border-slate-800/60 rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.15)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] flex justify-between items-center px-2 py-2 ring-1 ring-black/5">
                 
-                {navItems.map((item) => {
+                {filteredNavItems.map((item) => {
                     const isActive = currentView === item.view;
                     const Icon = item.icon;
 

@@ -18,12 +18,12 @@ import Sidebar from './Sidebar';
 const Profile = React.lazy(() => import('./Profile'));
 const AcademicYear = React.lazy(() => import('./AcademicYear'));
 const Reports = React.lazy(() => import('./Reports'));
-import ProtectedRoute from './ProtectedRoute';
 const Advisor = React.lazy(() => import('./Advisor'));
 const Settings = React.lazy(() => import('./Settings'));
 const PointsView = React.lazy(() => import('./PointsView'));
 import { ViewState, UserRole } from '../types';
-import { normalizeRole } from '../src/auth/roles';
+import { normalizeRole, Role } from '../src/auth/roles';
+import { hasPermission, Permission } from '../src/auth/rbac';
 import { toast } from 'sonner';
 import { Loader2, AppLogo } from './Icons';
 import { auth, db, isMockMode } from '../services/firebase';
@@ -107,10 +107,37 @@ const getViewFromPath = (pathname: string): ViewState => {
 };
 
 const getPathFromView = (view: ViewState): string => viewToPath[view] || '/login';
-  return pathToView[normalized] || ViewState.DASHBOARD;
+
+interface AppCurrentUser {
+  uid: string;
+  roles: UserRole[];
+  school_id: string | null;
+  status: string;
+}
+
+const VIEW_PERMISSIONS: Partial<Record<ViewState, Permission>> = {
+  [ViewState.DASHBOARD]: Permission.VIEW_DASHBOARD,
+  [ViewState.CLASSES]: Permission.MANAGE_ACADEMIC,
+  [ViewState.PROMOTION]: Permission.MANAGE_ACADEMIC,
+  [ViewState.SCHEDULE]: Permission.MANAGE_ACADEMIC,
+  [ViewState.ACADEMIC_YEAR]: Permission.MANAGE_ACADEMIC,
+  [ViewState.JOURNAL]: Permission.MANAGE_ACADEMIC,
+  [ViewState.ASSIGNMENTS]: Permission.MANAGE_ACADEMIC,
+  [ViewState.GRADES]: Permission.MANAGE_ACADEMIC,
+  [ViewState.REPORT_CARDS]: Permission.MANAGE_ACADEMIC,
+  [ViewState.SCANNER]: Permission.SCAN_QR,
+  [ViewState.PRESENSI]: Permission.MANAGE_ATTENDANCE,
+  [ViewState.ATTENDANCE_HISTORY]: Permission.VIEW_DASHBOARD,
+  [ViewState.REPORTS]: Permission.VIEW_REPORTS,
+  [ViewState.CONTENT_GENERATION]: Permission.ACCESS_AI,
+  [ViewState.STUDENTS]: Permission.MANAGE_USERS,
+  [ViewState.TEACHERS]: Permission.MANAGE_USERS,
+  [ViewState.CREATE_ACCOUNT]: Permission.MANAGE_USERS,
+  [ViewState.CLAIM_MANAGEMENT]: Permission.MANAGE_USERS,
+  [ViewState.DEVELOPER]: Permission.MANAGE_SYSTEM,
 };
 
-const getPathFromView = (view: ViewState): string => viewToPath[view] || '/dashboard';
+const PUBLIC_VIEWS = new Set<ViewState>([ViewState.LOGIN, ViewState.REGISTER]);
 
 const App: React.FC = () => {
   const viewFallback = (
@@ -122,9 +149,40 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.LOGIN);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>(UserRole.TAMU);
+  const [currentUser, setCurrentUser] = useState<AppCurrentUser | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [authLoading, setAuthLoading] = useState(true);
   const [viewKey, setViewKey] = useState(0); 
+
+  const canAccessView = (view: ViewState, user: AppCurrentUser | null): boolean => {
+    if (PUBLIC_VIEWS.has(view)) return true;
+    if (!user) return false;
+
+    const isActive = String(user.status || '').toLowerCase() === 'active';
+    if (!isActive) return false;
+    if (!user.school_id && !user.roles.includes(Role.DEVELOPER)) return false;
+    if (!user.roles.length) return false;
+
+    if (view === ViewState.DEVELOPER) {
+      return user.roles.includes(Role.DEVELOPER);
+    }
+
+    const neededPermission = VIEW_PERMISSIONS[view];
+    if (!neededPermission) return true;
+
+    return user.roles.some((role) => hasPermission(role, neededPermission));
+  };
+
+  const getSafeFallbackView = (user: AppCurrentUser | null): ViewState => {
+    if (!user) return ViewState.LOGIN;
+    return canAccessView(ViewState.DASHBOARD, user) ? ViewState.DASHBOARD : ViewState.LOGIN;
+  };
+
+  const enforceViewAccess = (requestedView: ViewState, user: AppCurrentUser | null, shouldNotify = true): ViewState => {
+    if (canAccessView(requestedView, user)) return requestedView;
+    if (shouldNotify) toast.error('Akses ditolak. Anda dialihkan ke halaman yang diizinkan.');
+    return getSafeFallbackView(user);
+  };
 
   useEffect(() => {
       const savedTheme = localStorage.getItem('theme');
@@ -152,46 +210,59 @@ const App: React.FC = () => {
                       
                       if (userDoc.exists) {
                           const data = userDoc.data();
-                          const role = normalizeRole(data?.role, UserRole.TAMU);
+                          const primaryRole = normalizeRole(data?.role, UserRole.TAMU);
+                          const roles = Array.isArray(data?.roles)
+                            ? data.roles.map((r: unknown) => normalizeRole(r, UserRole.TAMU)).filter((r: UserRole) => r !== UserRole.TAMU)
+                            : [];
+                          const normalizedRoles = roles.length ? roles : [primaryRole].filter((r) => r !== UserRole.TAMU);
                           const schoolId = data?.schoolId || data?.school_id;
+                          const accountStatus = (data?.status || 'active').toString();
 
-                          if (!data?.role || role === UserRole.TAMU) {
+                          if (!data?.role || primaryRole === UserRole.TAMU || normalizedRoles.length === 0) {
                             toast.error('Akun belum diaktifkan (role belum disetel).');
                             await auth.signOut();
                             return;
                           }
 
-                          if (!schoolId && role !== UserRole.DEVELOPER) {
+                          if (!schoolId && primaryRole !== UserRole.DEVELOPER) {
                             toast.error('Akun belum memiliki school_id.');
                             await auth.signOut();
                             return;
                           }
 
-                          setUserRole(role);
+                          const nextUser: AppCurrentUser = {
+                            uid: user.uid,
+                            roles: normalizedRoles,
+                            school_id: schoolId || null,
+                            status: accountStatus,
+                          };
+
+                          setCurrentUser(nextUser);
+                          setUserRole(primaryRole);
                           const activeView = getViewFromPath(window.location.pathname);
+                          const allowedView = enforceViewAccess(activeView, nextUser, activeView !== ViewState.LOGIN && activeView !== ViewState.REGISTER);
                           if (activeView === ViewState.LOGIN || activeView === ViewState.REGISTER) {
                             setCurrentView(ViewState.DASHBOARD);
                             window.history.replaceState({}, '', getPathFromView(ViewState.DASHBOARD));
                           } else {
-                            setCurrentView(activeView);
+                            setCurrentView(allowedView);
+                            if (allowedView !== activeView) {
+                              window.history.replaceState({}, '', getPathFromView(allowedView));
+                            }
                           }
                       } else {
                           toast.error('Data akun sekolah tidak ditemukan.');
                           await auth.signOut();
                           return;
+                          setCurrentUser(null);
                           setUserRole(UserRole.TAMU);
-                          const activeView = getViewFromPath(window.location.pathname);
-                          if (activeView === ViewState.LOGIN || activeView === ViewState.REGISTER) {
-                            setCurrentView(ViewState.DASHBOARD);
-                            window.history.replaceState({}, '', getPathFromView(ViewState.DASHBOARD));
-                          } else {
-                            setCurrentView(activeView);
-                          }
                       }
                   } catch (e: any) { 
                       console.warn("Auth sync failure:", e.message);
                   }
               } else {
+                  setCurrentUser(null);
+                  setUserRole(UserRole.TAMU);
                   const activeView = getViewFromPath(window.location.pathname);
                   if (activeView !== ViewState.LOGIN && activeView !== ViewState.REGISTER) {
                     setCurrentView(ViewState.LOGIN);
@@ -213,19 +284,24 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const syncFromLocation = () => {
-      const nextView = getViewFromPath(window.location.pathname);
-      setCurrentView(nextView);
+      const requestedView = getViewFromPath(window.location.pathname);
+      const allowedView = enforceViewAccess(requestedView, currentUser);
+      setCurrentView(allowedView);
+      if (allowedView !== requestedView) {
+        window.history.replaceState({}, '', getPathFromView(allowedView));
+      }
     };
 
     syncFromLocation();
     window.addEventListener('popstate', syncFromLocation);
     return () => window.removeEventListener('popstate', syncFromLocation);
-  }, []);
+  }, [currentUser]);
 
   const handleNavigate = (view: ViewState) => {
-    const nextPath = getPathFromView(view);
+    const allowedView = enforceViewAccess(view, currentUser);
+    const nextPath = getPathFromView(allowedView);
     setViewKey(prev => prev + 1);
-    setCurrentView(view);
+    setCurrentView(allowedView);
 
     if (normalizePath(window.location.pathname) !== nextPath) {
       window.history.pushState({}, '', nextPath);
@@ -245,21 +321,23 @@ const App: React.FC = () => {
 
   const handleLoginSuccess = (role: UserRole) => {
     setUserRole(role);
+    setCurrentUser((prev) => prev ? prev : {
+      uid: auth?.currentUser?.uid || 'session',
+      roles: [role],
+      school_id: 'pending',
+      status: 'active',
+    });
     handleNavigate(ViewState.DASHBOARD);
   };
 
   const handleLogout = async () => {
     if (!isMockMode && auth) await auth.signOut();
+    setCurrentUser(null);
     setUserRole(UserRole.TAMU);
     handleNavigate(ViewState.LOGIN);
   };
 
   const backToDashboard = () => handleNavigate(ViewState.DASHBOARD);
-
-  // Role Group Definitions
-  const staffAbove = [UserRole.ADMIN, UserRole.DEVELOPER, UserRole.GURU, UserRole.STAF_TU, UserRole.WALI_KELAS, UserRole.KEPALA_MADRASAH];
-  const adminDevOnly = [UserRole.ADMIN, UserRole.DEVELOPER];
-  const devOnly = [UserRole.DEVELOPER];
 
   if (authLoading) {
       return (
@@ -278,7 +356,7 @@ const App: React.FC = () => {
     switch (view) {
       case ViewState.LOGIN: return <Login onLogin={handleLoginSuccess} onNavigateRegister={() => handleNavigate(ViewState.REGISTER)} />;
       case ViewState.REGISTER: return <Register onLogin={handleLoginSuccess} onLoginClick={() => handleNavigate(ViewState.LOGIN)} />;
-      case ViewState.DASHBOARD: return <Dashboard onNavigate={handleNavigate} isDarkMode={isDarkTheme} onToggleTheme={toggleTheme} userRole={userRole} onLogout={handleLogout} />;
+      case ViewState.DASHBOARD: return <Dashboard onNavigate={handleNavigate} isDarkMode={isDarkTheme} onToggleTheme={toggleTheme} userRole={userRole} onLogout={handleLogout} canAccessView={(view) => canAccessView(view, currentUser)} />;
       case ViewState.PROFILE: return <Profile onBack={backToDashboard} onLogout={handleLogout} />;
       case ViewState.SCHEDULE: return <Schedule onBack={backToDashboard} />;
       case ViewState.ALL_FEATURES: return <AllFeatures onBack={backToDashboard} onNavigate={handleNavigate} userRole={userRole} />;
@@ -296,25 +374,25 @@ const App: React.FC = () => {
       case ViewState.ACADEMIC_YEAR: return <AcademicYear onBack={backToDashboard} />;
       
       // PROTECTED ROUTES
-      case ViewState.CLASSES: return <ProtectedRoute allowedRoles={staffAbove} userRole={userRole} onBack={backToDashboard}><ClassList onBack={backToDashboard} userRole={userRole} /></ProtectedRoute>;
-      case ViewState.SCANNER: return <ProtectedRoute allowedRoles={staffAbove} userRole={userRole} onBack={backToDashboard}><QRScanner onBack={backToDashboard} /></ProtectedRoute>;
+      case ViewState.CLASSES: return <ClassList onBack={backToDashboard} userRole={userRole} />;
+      case ViewState.SCANNER: return <QRScanner onBack={backToDashboard} />;
       case ViewState.ATTENDANCE_HISTORY: return <AttendanceHistory onBack={backToDashboard} onNavigate={handleNavigate} userRole={userRole} />;
-      case ViewState.PRESENSI: return <ProtectedRoute allowedRoles={staffAbove} userRole={userRole} onBack={backToDashboard}><Presensi onBack={backToDashboard} onNavigate={handleNavigate} /></ProtectedRoute>;
-      case ViewState.CONTENT_GENERATION: return <ProtectedRoute allowedRoles={staffAbove} userRole={userRole} onBack={backToDashboard}><ContentGeneration onBack={backToDashboard} /></ProtectedRoute>;
-      case ViewState.REPORTS: return <ProtectedRoute allowedRoles={adminDevOnly} userRole={userRole} onBack={backToDashboard}><Reports onBack={backToDashboard} /></ProtectedRoute>;
-      case ViewState.JOURNAL: return <ProtectedRoute allowedRoles={staffAbove} userRole={userRole} onBack={backToDashboard}><TeachingJournal onBack={backToDashboard} userRole={userRole} /></ProtectedRoute>;
+      case ViewState.PRESENSI: return <Presensi onBack={backToDashboard} onNavigate={handleNavigate} />;
+      case ViewState.CONTENT_GENERATION: return <ContentGeneration onBack={backToDashboard} />;
+      case ViewState.REPORTS: return <Reports onBack={backToDashboard} />;
+      case ViewState.JOURNAL: return <TeachingJournal onBack={backToDashboard} userRole={userRole} />;
       case ViewState.ASSIGNMENTS: return <Assignments onBack={backToDashboard} userRole={userRole} />;
       case ViewState.GRADES:
       case ViewState.REPORT_CARDS: return <Grades onBack={backToDashboard} userRole={userRole} />;
-      case ViewState.STUDENTS: return <ProtectedRoute allowedRoles={staffAbove} userRole={userRole} onBack={backToDashboard}><StudentData onBack={backToDashboard} userRole={userRole} /></ProtectedRoute>;
-      case ViewState.TEACHERS: return <ProtectedRoute allowedRoles={staffAbove} userRole={userRole} onBack={backToDashboard}><TeacherData onBack={backToDashboard} userRole={userRole} /></ProtectedRoute>;
+      case ViewState.STUDENTS: return <StudentData onBack={backToDashboard} userRole={userRole} />;
+      case ViewState.TEACHERS: return <TeacherData onBack={backToDashboard} userRole={userRole} />;
       case ViewState.LETTERS: return <Letters onBack={backToDashboard} userRole={userRole} />;
       case ViewState.POINTS: return <PointsView onBack={backToDashboard} />;
-      case ViewState.CLAIM_MANAGEMENT: return <ProtectedRoute allowedRoles={adminDevOnly} userRole={userRole} onBack={backToDashboard}><ClaimManagement onBack={backToDashboard} /></ProtectedRoute>;
-      case ViewState.CREATE_ACCOUNT: return <ProtectedRoute allowedRoles={adminDevOnly} userRole={userRole} onBack={backToDashboard}><CreateAccount onBack={backToDashboard} userRole={userRole} /></ProtectedRoute>;
-      case ViewState.DEVELOPER: return <ProtectedRoute allowedRoles={devOnly} userRole={userRole} onBack={backToDashboard}><DeveloperConsole onBack={backToDashboard} /></ProtectedRoute>;
+      case ViewState.CLAIM_MANAGEMENT: return <ClaimManagement onBack={backToDashboard} />;
+      case ViewState.CREATE_ACCOUNT: return <CreateAccount onBack={backToDashboard} userRole={userRole} />;
+      case ViewState.DEVELOPER: return <DeveloperConsole onBack={backToDashboard} />;
       
-      default: return <Dashboard onNavigate={handleNavigate} isDarkMode={isDarkTheme} onToggleTheme={toggleTheme} userRole={userRole} onLogout={handleLogout} />;
+      default: return <Dashboard onNavigate={handleNavigate} isDarkMode={isDarkTheme} onToggleTheme={toggleTheme} userRole={userRole} onLogout={handleLogout} canAccessView={(view) => canAccessView(view, currentUser)} />;
     }
   };
 
@@ -328,7 +406,7 @@ const App: React.FC = () => {
         <div className="h-full w-full relative flex overflow-hidden">
             {!isAuthView && (
                 <div className="hidden md:block w-72 lg:w-80 shrink-0 h-full border-r border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-[#0B1121]/50 backdrop-blur-xl z-40">
-                    <Sidebar currentView={currentView} onNavigate={handleNavigate} userRole={userRole} onLogout={handleLogout} />
+                    <Sidebar currentView={currentView} onNavigate={handleNavigate} userRole={userRole} onLogout={handleLogout} canAccessView={(view) => canAccessView(view, currentUser)} />
                 </div>
             )}
             
@@ -341,7 +419,7 @@ const App: React.FC = () => {
                 
                 {!isAuthView && (
                     <div className="shrink-0 z-50">
-                      <BottomNav currentView={currentView} onNavigate={handleNavigate} userRole={userRole} />
+                      <BottomNav currentView={currentView} onNavigate={handleNavigate} userRole={userRole} canAccessView={(view) => canAccessView(view, currentUser)} />
                     </div>
                 )}
             </div>
