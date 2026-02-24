@@ -6,7 +6,6 @@
 
 import React, { Suspense, useState, useEffect } from 'react';
 const Login = React.lazy(() => import('./Login'));
-const Register = React.lazy(() => import('./Register'));
 const Dashboard = React.lazy(() => import('./Dashboard'));
 const Presensi = React.lazy(() => import('./Presensi'));
 const ContentGeneration = React.lazy(() => import('./ContentGeneration'));
@@ -94,16 +93,14 @@ const pathToView = Object.entries(viewToPath).reduce((acc, [view, path]) => {
 }, {} as Record<string, ViewState>);
 
 const normalizePath = (pathname: string): string => {
-  if (!pathname) return '/login';
-  if (pathname === '/') return '/login';
-  if (!pathname) return '/dashboard';
-  if (pathname === '/') return '/dashboard';
+  if (!pathname || pathname === '/') return '/login';
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
 };
 
 const getViewFromPath = (pathname: string): ViewState => {
   const normalized = normalizePath(pathname);
-  return pathToView[normalized] || ViewState.LOGIN;
+  const resolved = pathToView[normalized] || ViewState.LOGIN;
+  return resolved === ViewState.REGISTER ? ViewState.LOGIN : resolved;
 };
 
 const getPathFromView = (view: ViewState): string => viewToPath[view] || '/login';
@@ -354,6 +351,8 @@ const App: React.FC = () => {
 
   const renderView = (view: ViewState) => {
     switch (view) {
+      case ViewState.LOGIN: return <Login onLogin={handleLoginSuccess} />;
+      case ViewState.REGISTER: return <Login onLogin={handleLoginSuccess} />;
       case ViewState.LOGIN: return <Login onLogin={handleLoginSuccess} onNavigateRegister={() => handleNavigate(ViewState.REGISTER)} />;
       case ViewState.REGISTER: return <Register onLogin={handleLoginSuccess} onLoginClick={() => handleNavigate(ViewState.LOGIN)} />;
       case ViewState.DASHBOARD: return <Dashboard onNavigate={handleNavigate} isDarkMode={isDarkTheme} onToggleTheme={toggleTheme} userRole={userRole} onLogout={handleLogout} canAccessView={(view) => canAccessView(view, currentUser)} />;

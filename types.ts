@@ -168,6 +168,8 @@ export interface Student {
   peminatan?: string;
   accountStatus?: 'unclaimed' | 'active' | string;
   linkedUserId?: string;
+  uidAuth?: string;
+  password?: string;
   disciplinePoints?: number;
 }
 
@@ -209,6 +211,8 @@ export interface Teacher {
   birthDate?: string;
   address?: string;
   linkedUserId?: string;
+  uidAuth?: string;
+  password?: string;
 }
 
 export type LetterStatus = 'Pending' | 'Verified' | 'Validated' | 'Signed' | 'Ditolak';

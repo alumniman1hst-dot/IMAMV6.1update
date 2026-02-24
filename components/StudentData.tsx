@@ -4,18 +4,18 @@
  * IMAM System - Integrated Madrasah Academic Manager
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { getStudents, deleteStudent, updateStudent, addStudent } from '../services/studentService';
 import { Student, UserRole } from '../types';
 import { db, isMockMode } from '../services/firebase';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 import Layout from './Layout';
 import { 
   UsersGroupIcon, 
   PencilIcon, TrashIcon, Search, PlusIcon,
   Loader2, XCircleIcon, SaveIcon,
-  SparklesIcon, ArrowPathIcon,
-  BuildingLibraryIcon, ChevronDownIcon
+  SparklesIcon, ArrowPathIcon, ArrowDownTrayIcon, ShieldCheckIcon
 } from './Icons';
 
 type SortDirection = 'asc' | 'desc' | null;
@@ -29,11 +29,112 @@ const StudentData: React.FC<{ onBack: () => void, userRole: UserRole }> = ({ onB
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedClass, setSelectedClass] = useState('All');
+  const [selectedClass, setSelectedClass] = useState('10 A');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'namaLengkap', direction: 'asc' });
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleExportTemplate = () => {
+    const templateRows = [
+      {
+        namaLengkap: 'Contoh Siswa',
+        nis: '1001',
+        nisn: '1234567890',
+        tanggalLahir: '2010-01-01',
+        tingkatRombel: '10 A',
+        jenisKelamin: 'Laki-laki',
+        status: 'Aktif',
+        school_id: 'SCH-001',
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'TemplateSiswa');
+    XLSX.writeFile(wb, 'template-import-siswa.xlsx');
+    toast.success('Template Excel siswa berhasil diunduh.');
+  };
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json<any>(sheet, { defval: '' });
+
+      if (!rows.length) {
+        toast.error('File Excel kosong atau format tidak sesuai.');
+        return;
+      }
+
+      const imported: Student[] = rows
+        .filter((r) => r.namaLengkap && (r.nisn || r.nis))
+        .map((r, idx) => ({
+          id: `import-${Date.now()}-${idx}`,
+          school_id: String(r.school_id || 'SCH-001'),
+          roles: ['SISWA'],
+          userlogin: String(r.nis || r.nisn || ''),
+          nis: String(r.nis || ''),
+          nisn: String(r.nisn || ''),
+          namaLengkap: String(r.namaLengkap || ''),
+          tanggalLahir: String(r.tanggalLahir || ''),
+          tingkatRombel: String(r.tingkatRombel || '10 A'),
+          status: String(r.status || 'Aktif') as any,
+          jenisKelamin: String(r.jenisKelamin || 'Laki-laki') as any,
+          uidAuth: String(r.uidAuth || ''),
+          password: String(r.password || '123456'),
+        }));
+
+      if (!imported.length) {
+        toast.error('Tidak ada baris valid untuk diimpor.');
+        return;
+      }
+
+      setStudents((prev) => [...imported, ...prev]);
+      toast.success(`${imported.length} data siswa berhasil diimpor ke tampilan.`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal membaca file Excel.');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  const handleGenerateRole = async () => {
+    if (!canManage) return;
+    if (isMockMode || !db) {
+      setStudents((prev) => prev.map((s) => ({ ...s, roles: ['SISWA'], uidAuth: s.uidAuth || s.linkedUserId || '', password: s.password || '123456' })));
+      toast.success('Role siswa berhasil digenerate (mode simulasi).');
+      return;
+    }
+
+    const batch = db.batch();
+    const targets = selectedClass === 'All' ? students : students.filter((s) => s.tingkatRombel === selectedClass);
+
+    if (!targets.length) {
+      toast.error('Tidak ada data siswa untuk digenerate.');
+      return;
+    }
+
+    targets.forEach((s) => {
+      if (!s.id) return;
+      const ref = db.collection('students').doc(s.id);
+      batch.set(ref, {
+        role: 'SISWA',
+        roles: ['SISWA'],
+        uidAuth: s.uidAuth || s.linkedUserId || null,
+        password: s.password || '123456',
+      }, { merge: true });
+    });
+
+    await batch.commit();
+    toast.success(`Generate role selesai untuk ${targets.length} siswa.`);
+    loadData(true);
+  };
 
   const loadData = async (force = false) => {
     setLoading(true);
@@ -125,14 +226,27 @@ const StudentData: React.FC<{ onBack: () => void, userRole: UserRole }> = ({ onB
                         className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-2xl py-3 px-4 text-[10.5px] font-bold outline-none appearance-none cursor-pointer text-slate-700 dark:text-slate-300 shadow-inner"
                     >
                         <option value="All">Semua rombel</option>
+                        <option value="10 A">10 A</option>
                         {classLevels.map(lvl => <option key={lvl} value={lvl}>{lvl}</option>)}
                     </select>
                 </div>
             </div>
             {canManage && (
-                <button onClick={() => setIsModalOpen(true)} className="w-full lg:w-auto px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10.5px] font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
-                    <PlusIcon className="w-4 h-4" /> Tambah Siswa
-                </button>
+                <div className="w-full lg:w-auto flex flex-col sm:flex-row gap-2">
+                    <input ref={importInputRef} type="file" accept=".xlsx,.xls" onChange={handleImportExcel} className="hidden" />
+                    <button onClick={handleExportTemplate} className="w-full lg:w-auto px-4 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                        <ArrowDownTrayIcon className="w-4 h-4" /> Template Excel
+                    </button>
+                    <button onClick={() => importInputRef.current?.click()} className="w-full lg:w-auto px-4 py-3 bg-sky-600 text-white rounded-2xl text-[10px] font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                        <SaveIcon className="w-4 h-4" /> Import Excel
+                    </button>
+                    <button onClick={handleGenerateRole} className="w-full lg:w-auto px-4 py-3 bg-violet-600 text-white rounded-2xl text-[10px] font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                        <ShieldCheckIcon className="w-4 h-4" /> Generate Role
+                    </button>
+                    <button onClick={() => setIsModalOpen(true)} className="w-full lg:w-auto px-6 py-3 bg-indigo-600 text-white rounded-2xl text-[10.5px] font-bold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all">
+                        <PlusIcon className="w-4 h-4" /> Tambah Siswa
+                    </button>
+                </div>
             )}
         </div>
 

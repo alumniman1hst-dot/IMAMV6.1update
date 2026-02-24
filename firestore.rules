@@ -60,7 +60,12 @@ service cloud.firestore {
     match /teachers/{nip} {
       allow get: if true;
       allow list: if isSignedIn();
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && resource.data.linkedUserId == null
+        && request.resource.data.linkedUserId == request.auth.uid
+      );
     }
 
     // Akademik (Jurnal, Tugas, Nilai)
