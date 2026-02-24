@@ -250,7 +250,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <button type="button" onClick={() => setShowActivation((v) => !v)} className="text-indigo-600 hover:underline">
               {showActivation ? 'Tutup Aktivasi Akun' : 'Link Aktivasi Akun'}
             </button>
-            <button type="button" onClick={handleForgotPassword} className="text-slate-500 hover:text-indigo-600 hover:underline">
+            <button type="button" onClick={handleForgotPassword} disabled={loading || activating} className="text-slate-500 hover:text-indigo-600 hover:underline disabled:opacity-40">
               Lupa Password
             </button>
           </div>

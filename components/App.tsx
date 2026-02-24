@@ -99,7 +99,8 @@ const normalizePath = (pathname: string): string => {
 
 const getViewFromPath = (pathname: string): ViewState => {
   const normalized = normalizePath(pathname);
-  return pathToView[normalized] || ViewState.LOGIN;
+  const resolved = pathToView[normalized] || ViewState.LOGIN;
+  return resolved === ViewState.REGISTER ? ViewState.LOGIN : resolved;
 };
 
 const getPathFromView = (view: ViewState): string => viewToPath[view] || '/login';
