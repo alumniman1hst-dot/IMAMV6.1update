@@ -94,6 +94,12 @@ const Login: React.FC<LoginProps> = ({ onLogin, onNavigateRegister }) => {
             const data = userDoc.data();
             const role = normalizeRole(data?.role, UserRole.TAMU);
             const schoolId = data?.schoolId || data?.school_id;
+            const status = String(data?.status || '').toLowerCase();
+
+            if (status !== 'active') {
+                await auth.signOut();
+                throw new Error('Akun belum aktif. Selesaikan proses claim/aktivasi terlebih dahulu.');
+            }
 
             if (!data?.role || role === UserRole.TAMU) {
                 await auth.signOut();
