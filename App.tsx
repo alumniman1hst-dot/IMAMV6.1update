@@ -6,6 +6,8 @@
  */
 
 import React, { Suspense, useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+const ActivationPage = React.lazy(() => import('./components/ActivationPage'));
 import { Toaster, toast } from 'sonner';
 import { ViewState, UserRole } from './types';
 import { normalizeRole } from './src/auth/roles';
@@ -207,41 +209,49 @@ const App: React.FC = () => {
   const isAuthView = currentView === ViewState.LOGIN || currentView === ViewState.REGISTER;
 
   return (
-    <MobileContainer 
-      isDarkTheme={isDarkTheme} 
-      viewMode={viewMode} 
-      onViewModeChange={setViewMode}
-    >
-      <div className="h-full w-full flex relative overflow-hidden bg-white dark:bg-[#020617]">
-        <Toaster position="top-center" expand={false} richColors />
-        
-        {/* Desktop Sidebar */}
-        {!isAuthView && (
-          <div className="hidden md:block w-72 lg:w-80 shrink-0 h-full border-r border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-[#0B1121]/50 backdrop-blur-xl z-40">
-            <Sidebar currentView={currentView} onNavigate={handleNavigate} userRole={userRole} onLogout={handleLogout} />
-          </div>
-        )}
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-full w-full relative overflow-hidden">
-          <div 
-            key={viewKey} 
-            className="flex-1 overflow-hidden relative animate-in fade-in slide-in-from-bottom-2 duration-300"
+    <Router>
+      <Routes>
+        <Route path="/aktivasi-akun" element={
+          <Suspense fallback={viewFallback}>
+            <ActivationPage />
+          </Suspense>
+        } />
+        <Route path="*" element={
+          <MobileContainer 
+            isDarkTheme={isDarkTheme} 
+            viewMode={viewMode} 
+            onViewModeChange={setViewMode}
           >
-            <Suspense fallback={viewFallback}>
-              {renderCurrentView()}
-            </Suspense>
-          </div>
-          
-          {/* Navigation (Mobile Docks) */}
-          {!isAuthView && (
-            <div className="shrink-0 z-50 md:hidden">
-              <BottomNav currentView={currentView} onNavigate={handleNavigate} userRole={userRole} />
+            <div className="h-full w-full flex relative overflow-hidden bg-white dark:bg-[#020617]">
+              <Toaster position="top-center" expand={false} richColors />
+              {/* Desktop Sidebar */}
+              {!isAuthView && (
+                <div className="hidden md:block w-72 lg:w-80 shrink-0 h-full border-r border-slate-100 dark:border-slate-800 bg-white/50 dark:bg-[#0B1121]/50 backdrop-blur-xl z-40">
+                  <Sidebar currentView={currentView} onNavigate={handleNavigate} userRole={userRole} onLogout={handleLogout} />
+                </div>
+              )}
+              {/* Main Content Area */}
+              <div className="flex-1 flex flex-col h-full w-full relative overflow-hidden">
+                <div 
+                  key={viewKey} 
+                  className="flex-1 overflow-hidden relative animate-in fade-in slide-in-from-bottom-2 duration-300"
+                >
+                  <Suspense fallback={viewFallback}>
+                    {renderCurrentView()}
+                  </Suspense>
+                </div>
+                {/* Navigation (Mobile Docks) */}
+                {!isAuthView && (
+                  <div className="shrink-0 z-50 md:hidden">
+                    <BottomNav currentView={currentView} onNavigate={handleNavigate} userRole={userRole} />
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
-    </MobileContainer>
+          </MobileContainer>
+        } />
+      </Routes>
+    </Router>
   );
 };
 
