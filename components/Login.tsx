@@ -100,14 +100,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       onLogin(role);
       toast.success(`Selamat datang, ${cred.user.displayName || data?.nama || 'Pengguna'}`);
-        if (!auth || !db) {
-           setNetworkError(true);
-           throw new Error("Layanan Firebase tidak dapat dihubungi.");
-        }
+          if (!auth || !db) {
+            setNetworkError(true);
+            throw new Error("Layanan Firebase tidak dapat dihubungi.");
+          }
         
-        const emailToSignIn = await resolveLoginEmail(u);
-        const userCredential = await auth.signInWithEmailAndPassword(emailToSignIn, p);
-        const user = userCredential.user;
+          const userCredential = await auth.signInWithEmailAndPassword(emailToSignIn, p);
+          const user = userCredential.user;
 
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
