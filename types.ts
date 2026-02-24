@@ -51,6 +51,18 @@ import { Role, type Role as UnifiedRole } from './src/auth/roles';
 export const UserRole = Role;
 export type UserRole = UnifiedRole;
 
+
+
+export interface UserDoc {
+  uid: string;
+  name: string;
+  email: string;
+  role: 'SISWA' | 'GURU' | 'ADMIN' | string;
+  roles?: string[];
+  school_id: string;
+  status: 'active' | string;
+  loginId: string;
+}
 export interface ClaimRequest {
   id: string;
   userId: string;
@@ -115,6 +127,7 @@ export interface Student {
   roles: string[];
   idUnik?: string;
   userlogin?: string;
+  nis?: string;
   namaLengkap: string;
   nisn: string;
   nik?: string;
@@ -153,8 +166,10 @@ export interface Student {
   tglMasuk?: string;
   noAktaLahir?: string;
   peminatan?: string;
-  accountStatus?: string;
+  accountStatus?: 'unclaimed' | 'active' | string;
   linkedUserId?: string;
+  uidAuth?: string;
+  password?: string;
   disciplinePoints?: number;
 }
 
@@ -196,6 +211,8 @@ export interface Teacher {
   birthDate?: string;
   address?: string;
   linkedUserId?: string;
+  uidAuth?: string;
+  password?: string;
 }
 
 export type LetterStatus = 'Pending' | 'Verified' | 'Validated' | 'Signed' | 'Ditolak';

@@ -24,9 +24,10 @@ interface DashboardProps {
   onToggleTheme: () => void;
   userRole: UserRole;
   onLogout: () => void;
+  canAccessView?: (view: ViewState) => boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userRole, onLogout }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userRole, onLogout, canAccessView }) => {
   const [userName, setUserName] = useState<string>('Pengguna');
   const [userIdUnik, setUserIdUnik] = useState<string | null>(null);
   
@@ -118,7 +119,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigate, userRole, onLogout })
     { label: 'Nilai', icon: AcademicCapIcon, view: ViewState.REPORT_CARDS, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     { label: 'Surat', icon: EnvelopeIcon, view: ViewState.LETTERS, color: 'text-sky-600', bg: 'bg-sky-50' },
     { label: 'Laporan', icon: ChartBarIcon, view: ViewState.REPORTS, color: 'text-slate-600', bg: 'bg-slate-100', roles: [UserRole.ADMIN, UserRole.DEVELOPER, UserRole.KEPALA_MADRASAH] }
-  ].filter(item => hasRoleAccess(item.roles));
+  ].filter(item => hasRoleAccess(item.roles) && (!canAccessView || canAccessView(item.view)));
 
   return (
     <div className="flex flex-col h-full bg-[#f8fafc] dark:bg-[#020617] overflow-hidden transition-colors duration-300">

@@ -49,12 +49,23 @@ service cloud.firestore {
     match /students/{nisn} {
       allow get: if true; 
       allow list: if isSignedIn();
-      allow write: if isStaff();
+      allow create, delete: if isStaff();
+      allow update: if isStaff() || (
+        isSignedIn()
+        && resource.data.linkedUserId == null
+        && request.resource.data.linkedUserId == request.auth.uid
+        && request.resource.data.accountStatus == 'active'
+      );
     }
     match /teachers/{nip} {
       allow get: if true;
       allow list: if isSignedIn();
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && resource.data.linkedUserId == null
+        && request.resource.data.linkedUserId == request.auth.uid
+      );
     }
 
     // Akademik (Jurnal, Tugas, Nilai)
