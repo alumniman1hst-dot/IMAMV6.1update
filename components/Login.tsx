@@ -10,11 +10,9 @@ interface LoginProps {
 }
 
 type ActivationMode = 'student' | 'teacher';
-type EntryMode = 'login' | 'activation';
 type LoginRoleMode = 'student' | 'teacher' | 'admin';
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [entryMode, setEntryMode] = useState<EntryMode>('login');
   const [loginRoleMode, setLoginRoleMode] = useState<LoginRoleMode>('student');
 
   const [identifier, setIdentifier] = useState('dgt.3652@gmail.com');
@@ -202,7 +200,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
       setIdentifier(activationEmail.trim());
       setPassword(activationPassword);
-      setEntryMode('login');
       setLoginRoleMode(activateMode === 'student' ? 'student' : 'teacher');
       toast.success('Aktivasi berhasil. Data pribadi ditemukan dan akun sudah terhubung.');
     } catch (err: any) {
@@ -233,68 +230,60 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">Masuk berbeda sesuai jenis akun</p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl">
-            <button type="button" onClick={() => setEntryMode('login')} className={`py-2 rounded-xl text-[10px] font-black ${entryMode === 'login' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Masuk</button>
-            <button type="button" onClick={() => setEntryMode('activation')} className={`py-2 rounded-xl text-[10px] font-black ${entryMode === 'activation' ? 'bg-white dark:bg-slate-700 text-indigo-600 shadow-sm' : 'text-slate-500'}`}>Aktivasi</button>
-          </div>
+          <form onSubmit={handleLogin} className="space-y-5">
+            <div className="grid grid-cols-3 gap-2">
+              <button type="button" onClick={() => setLoginRoleMode('student')} className={`py-2 rounded-xl text-[10px] font-black ${loginRoleMode === 'student' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Siswa</button>
+              <button type="button" onClick={() => setLoginRoleMode('teacher')} className={`py-2 rounded-xl text-[10px] font-black ${loginRoleMode === 'teacher' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Guru</button>
+              <button type="button" onClick={() => setLoginRoleMode('admin')} className={`py-2 rounded-xl text-[10px] font-black ${loginRoleMode === 'admin' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Admin</button>
+            </div>
 
-          {entryMode === 'login' ? (
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="grid grid-cols-3 gap-2">
-                <button type="button" onClick={() => setLoginRoleMode('student')} className={`py-2 rounded-xl text-[10px] font-black ${loginRoleMode === 'student' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Siswa</button>
-                <button type="button" onClick={() => setLoginRoleMode('teacher')} className={`py-2 rounded-xl text-[10px] font-black ${loginRoleMode === 'teacher' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Guru</button>
-                <button type="button" onClick={() => setLoginRoleMode('admin')} className={`py-2 rounded-xl text-[10px] font-black ${loginRoleMode === 'admin' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Admin</button>
-              </div>
-
-              <div className="space-y-4">
-                <div className="group">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">{loginIdentifierLabel}</label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"><EnvelopeIcon className="w-5 h-5" /></div>
-                    <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-slate-900 dark:text-white text-sm font-bold shadow-sm" placeholder={loginIdentifierLabel} required />
-                  </div>
-                </div>
-
-                <div className="group">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Password</label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"><LockIcon className="w-5 h-5" /></div>
-                    <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-slate-900 dark:text-white text-sm font-bold shadow-sm" placeholder="••••••••" required />
-                  </div>
+            <div className="space-y-4">
+              <div className="group">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">{loginIdentifierLabel}</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"><EnvelopeIcon className="w-5 h-5" /></div>
+                  <input type="text" value={identifier} onChange={(e) => setIdentifier(e.target.value)} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-slate-900 dark:text-white text-sm font-bold shadow-sm" placeholder={loginIdentifierLabel} required />
                 </div>
               </div>
 
-              <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span className="uppercase tracking-[0.2em] text-xs">Masuk</span>}
-                {!loading && <ArrowRightIcon className="w-5 h-5" />}
+              <div className="group">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-1">Password</label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors"><LockIcon className="w-5 h-5" /></div>
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 pl-12 pr-4 text-slate-900 dark:text-white text-sm font-bold shadow-sm" placeholder="••••••••" required />
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-indigo-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span className="uppercase tracking-[0.2em] text-xs">Masuk</span>}
+              {!loading && <ArrowRightIcon className="w-5 h-5" />}
+            </button>
+          </form>
+
+          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 p-4 bg-white/80 dark:bg-slate-900/50 space-y-3">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aktivasi Akun (Di bawah tombol login)</p>
+            <form onSubmit={handleActivation} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => setActivateMode('student')} className={`py-2 rounded-xl text-[10px] font-black ${activateMode === 'student' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Siswa</button>
+                <button type="button" onClick={() => setActivateMode('teacher')} className={`py-2 rounded-xl text-[10px] font-black ${activateMode === 'teacher' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Guru</button>
+              </div>
+
+              <input value={activationEmail} onChange={(e) => setActivationEmail(e.target.value)} type="email" placeholder="Email aktivasi" className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
+              <div className="grid grid-cols-2 gap-2">
+                <input value={activationPassword} onChange={(e) => setActivationPassword(e.target.value)} type="password" placeholder="Password" className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
+                <input value={activationConfirmPassword} onChange={(e) => setActivationConfirmPassword(e.target.value)} type="password" placeholder="Konfirmasi" className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <input value={activationIdUnik} onChange={(e) => setActivationIdUnik(e.target.value)} type="text" placeholder="ID Unik" className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
+                <input value={activationRefId} onChange={(e) => setActivationRefId(e.target.value)} type="text" placeholder={activateMode === 'student' ? 'NISN' : 'NIP'} className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
+              </div>
+
+              <button type="submit" disabled={activating} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircleIcon className="w-4 h-4" /> Verifikasi & Aktivasi</>}
               </button>
             </form>
-          ) : (
-            <div className="rounded-3xl border border-slate-200 dark:border-slate-800 p-4 bg-white/80 dark:bg-slate-900/50 space-y-3">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Aktivasi Akun (Email + Verifikasi Data)</p>
-              <form onSubmit={handleActivation} className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <button type="button" onClick={() => setActivateMode('student')} className={`py-2 rounded-xl text-[10px] font-black ${activateMode === 'student' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Siswa</button>
-                  <button type="button" onClick={() => setActivateMode('teacher')} className={`py-2 rounded-xl text-[10px] font-black ${activateMode === 'teacher' ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'}`}>Guru</button>
-                </div>
-
-                <input value={activationEmail} onChange={(e) => setActivationEmail(e.target.value)} type="email" placeholder="Email aktivasi" className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
-                <div className="grid grid-cols-2 gap-2">
-                  <input value={activationPassword} onChange={(e) => setActivationPassword(e.target.value)} type="password" placeholder="Password" className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
-                  <input value={activationConfirmPassword} onChange={(e) => setActivationConfirmPassword(e.target.value)} type="password" placeholder="Konfirmasi" className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <input value={activationIdUnik} onChange={(e) => setActivationIdUnik(e.target.value)} type="text" placeholder="ID Unik" className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
-                  <input value={activationRefId} onChange={(e) => setActivationRefId(e.target.value)} type="text" placeholder={activateMode === 'student' ? 'NISN' : 'NIP'} className="w-full bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-xs font-bold border border-slate-200 dark:border-slate-800" required />
-                </div>
-
-                <button type="submit" disabled={activating} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2">
-                  {activating ? <Loader2 className="w-4 h-4 animate-spin" /> : <><CheckCircleIcon className="w-4 h-4" /> Verifikasi & Aktivasi</>}
-                </button>
-              </form>
-            </div>
-          )}
-
+          </div>
           {error && (
             <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
               <ShieldCheckIcon className="w-4 h-4" /> <span>{error}</span>
